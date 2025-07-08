@@ -7,5 +7,5 @@ set(CMAKE_CXX_STANDARD 20)
 add_definitions("-g -Wall")
 
 
-add_executable(server main.cpp)
+add_executable(main main.cpp)
 
