@@ -13,7 +13,8 @@ public:
     
     void recv();
     void send(const std::string& msg);
-    
+    void close();
+
     auto lastActive() const { return m_last_active_tp; }
 private:
     void closedByClient();

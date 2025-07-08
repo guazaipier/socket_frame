@@ -11,7 +11,6 @@
 #include "session.h"
 #include "utils.h"
 
-
 Connection::Connection() {
     init();
     m_threads.reserve(MAX_SESSION_THREADS);
@@ -141,9 +140,11 @@ void Connection::eraseSession(int session_fd) {
     std::cout << std::this_thread::get_id() << " erasing session " << session_fd << std::endl;
     {
         std::lock_guard<std::mutex> lock(m_session_mutex);
+        if (m_sessions.find(session_fd) == m_sessions.end()) return;
         if (::epoll_ctl(m_epollfd, EPOLL_CTL_DEL, session_fd, nullptr) == -1 && errno != EBADF) {
             std::cerr << "error removing session from epoll: " << errno << " " << std::strerror(errno) << std::endl;
         }
+        m_sessions[session_fd]->close();
         m_sessions.erase(session_fd);
     }
     std::cout << "session removed: " << session_fd << " total sessions: " << m_sessions.size() << std::endl;

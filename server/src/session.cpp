@@ -17,11 +17,7 @@ Session::Session(int id, std::weak_ptr<Connection> conn, sockaddr_in* addr) : m_
 }
 
 Session::~Session() {
-    int fd = m_sockfd;
-    ::shutdown(m_sockfd, SHUT_RDWR);
-    ::close(m_sockfd);
-    m_sockfd = -1;
-    std::cout << "Session " << fd << " closed. " << " thread id: " << std::this_thread::get_id()  << std::endl;
+    close();
 }
 
 void Session::recv() {
@@ -90,4 +86,13 @@ void Session::closedByClient() {
     if (conn)
         conn->removeSession(m_sockfd);
     std::cout << "session " << m_sockfd << " closedByClient " << " thread id: " << std::this_thread::get_id()  << std::endl;
+}
+
+void Session::close() {
+    if (m_sockfd == -1) return;
+    int fd = m_sockfd;
+    ::shutdown(m_sockfd, SHUT_RDWR);
+    ::close(m_sockfd);
+    m_sockfd = -1;
+    std::cout << "Session " << fd << " closed. " << " thread id: " << std::this_thread::get_id()  << std::endl;
 }
