@@ -35,6 +35,9 @@ private:
     // sessions_ stores all the sessions connected to this connection.
     std::unordered_map<int, std::unique_ptr<Session>> m_sessions;
     
+    // 线程池 -> 监听连接池中已连接的 client event
+    std::thread m_accept_thread;
+    
     // 运行状态标志
     std::atomic_bool m_stop{false};
     // epollfd

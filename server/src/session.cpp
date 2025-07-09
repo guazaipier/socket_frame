@@ -41,7 +41,7 @@ void Session::recv() {
             data.append(buffer, n);
         }
     }
-    if (n != 0) {
+    if (n > 0) {
         std::cout << "recved data: " << data << " len: " << data.length() << " " << m_sockfd << " thread id: " << std::this_thread::get_id() << std::endl;
         send(data);
     }
@@ -51,25 +51,14 @@ void Session::send(const std::string& msg) {
     m_last_active_tp = std::chrono::system_clock::now();
     size_t ret = 0, sent_len = 0;
     const char* data = msg.c_str();
-    while (sent_len < msg.length()) {
+    while (sent_len <= msg.length()) {
         ret = ::send(m_sockfd, data + sent_len, msg.length() - sent_len, 0);
         if (ret < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                // std::cout << "send buffer full, wait for next time" << std::endl;
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                continue;
+            if (errno != EWOULDBLOCK || errno != EAGAIN) {
+                std::cerr << "recv error: " << errno << " " << std::strerror(errno) << " thread id: " << std::this_thread::get_id() << std::endl;
+                closedByClient();
             }
-            else if (errno == EINTR) {
-                // std::cout << "send interrupted, retrying..." << std::endl;
-                // continue;
-                break; // 这里被信号中断就不发送了，保持系统处理信号一致
-            }
-            else {
-                char err[200];
-                snprintf(err, sizeof(err), "send error: %d %s session id: %d thread id: %ul.", errno, std::strerror(errno), m_sockfd, std::this_thread::get_id());
-                std::cerr << err << std::endl;
-                break;
-            }
+            break;
         } else if (ret == 0) {
             std::cout << "client closed by client: " << m_sockfd<< " thread id: " << std::this_thread::get_id()  << std::endl;
             closedByClient();

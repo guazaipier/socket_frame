@@ -22,7 +22,6 @@ Server::Server(const int port) {
     
     // 创建管理 client IO 的对象 和 监听已连接的 client 线程
     m_connections.reserve(MAX_CONNECT_THREADS);
-    m_threads.reserve(MAX_CONNECT_THREADS);
     for (int i = 0; i < MAX_CONNECT_THREADS; ++i) {
         auto conn(std::make_shared<Connection>());
         if (conn->isStopped()) {
@@ -30,7 +29,6 @@ Server::Server(const int port) {
             exit(1);
         }
         m_connections.emplace_back(conn);
-        m_threads.emplace_back(std::thread(&Connection::run, conn));
     }
 
     signalDisable();
@@ -41,11 +39,6 @@ Server::~Server() {
     std::cout << "server ~destruct begin..." << std::endl;
     for (auto& conn : m_connections) {
         conn->stop();
-    }
-    for (auto& thread : m_threads) {
-        if (thread.joinable()) {
-            thread.join();
-        }
     }
     stop();
     std::cout << "server ~destruct exit." << std::endl;
@@ -70,7 +63,7 @@ void Server::run() {
             for (int i = 0; i < nfds; ++i) {
                 if (events[i].data.fd == m_sockfd) {
                     // 接受新连接
-                    m_connections[(m_cur_thread++) % MAX_CONNECT_THREADS]->addSession(m_sockfd);
+                    m_connections[(++m_cur_thread) % MAX_CONNECT_THREADS]->addSession(m_sockfd);
                 }
             }
         }

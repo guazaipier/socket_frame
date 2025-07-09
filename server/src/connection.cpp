@@ -18,6 +18,8 @@ Connection::Connection() {
         m_threads.emplace_back(std::make_unique<ThreadPool>(1));
     }
     m_check_thread = std::thread(&Connection::checkIdleSessions, this);
+    m_accept_thread = std::thread(&Connection::run, this);
+
     std::cout << "connection created threadpool " << MAX_SESSION_THREADS << std::endl;
 }
 
@@ -30,6 +32,8 @@ Connection::~Connection() {
     }
     if (m_check_thread.joinable())
         m_check_thread.join();
+    if (m_accept_thread.joinable())
+        m_accept_thread.join();
     std::cout << "connection destroyed" << std::endl;
 }
 

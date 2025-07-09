@@ -32,8 +32,6 @@ private:
 
     // 连接池 -> accept 新的连接
     std::vector<std::shared_ptr<Connection>> m_connections;
-    // 线程池 -> 监听连接池中已连接的 client event
-    std::vector<std::thread> m_threads;
     // 当前连接池 -> 轮询方式接受新连接
     int m_cur_thread{0};
 };
