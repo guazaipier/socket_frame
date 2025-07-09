@@ -20,36 +20,29 @@ Session::~Session() {
     close();
 }
 
-void Session::recv(std::string&& data) {
+bool Session::recv(std::string&& data) {
     m_last_active_tp = std::chrono::system_clock::now();
     std::cout << "recved data: " << data << " len: " << data.length() << " " << m_sockfd << " thread id: " << std::this_thread::get_id() << std::endl;
-    send(data);
+    return send(data);
 }
 
-void Session::send(const std::string& msg) {
+bool Session::send(const std::string& msg) {
     m_last_active_tp = std::chrono::system_clock::now();
     size_t bytes_sent = 0, len = msg.length();
     const char* data = msg.c_str();
     // std::cout << "send data: " << msg.size() << " begin..." << std::endl;
     while (len > 0) {
         bytes_sent = ::send(m_sockfd, data, len, 0);
-        if (bytes_sent < 0) {
-            break;
-        }
-        if (bytes_sent == 0) {
-            return;
+        if (bytes_sent <= 0) {
+            if (errno != EWOULDBLOCK && errno != EAGAIN)
+                return false;
+            continue;
         }
         len -= bytes_sent;
         data += bytes_sent;
     }
-    if (len > 0)
-        std::cout << "sent data: " << msg.substr(0, len) << " len: " << len << " " << m_sockfd << " thread id: " << std::this_thread::get_id() << std::endl;
-}
-
-void Session::closedByClient() {
-    std::shared_ptr<Connection> conn = m_conn.lock();
-    if (conn)
-        conn->removeSession(m_sockfd);
+    std::cout << "sent data: " << msg.substr(0, len) << " len: " << len << " " << m_sockfd << " thread id: " << std::this_thread::get_id() << std::endl;
+    return true;
 }
 
 void Session::close() {

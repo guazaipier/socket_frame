@@ -141,13 +141,16 @@ void Connection::handleEvents() {
                 if (m_closed_sessions.find(ev.first) != m_closed_sessions.end()) continue;
             }
             // std::cout << "2 handleEvents: " << ev.first << " " << ev.second.size() << std::endl;
+            bool state = true;
             {
                 std::shared_lock lock(m_session_mutex);
                 auto iter = m_sessions.find(ev.first);
                 if (iter == m_sessions.end()) continue;
                 // 处理数据
-                iter->second->recv(std::move(ev.second));
+                state = iter->second->recv(std::move(ev.second));
             }
+            if (!state) 
+                removeSession(ev.first); // 解决大量 close_wait
             // std::cout << "3 handleEvents: " << ev.first << " " << ev.second.size() << std::endl;
         }
     }
@@ -161,7 +164,7 @@ void Connection::read(int sockfd) {
         char buffer[MAX_BUFFER_SIZE];
         n = ::recv(sockfd, buffer, MAX_BUFFER_SIZE, 0);
         if (n <= 0) {
-            if (errno != EWOULDBLOCK && errno != EAGAIN)
+            if (errno != EWOULDBLOCK)
                 removeSession(sockfd);
             break; // 读取完毕
         } else {
@@ -172,7 +175,7 @@ void Connection::read(int sockfd) {
     if (!data.empty()) {
         std::lock_guard<std::mutex> lock(m_events_mutex);
         m_events.emplace(sockfd, std::move(data));
-        m_events_cv.notify_one();        
+        m_events_cv.notify_one();
     }
 }
 

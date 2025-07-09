@@ -11,13 +11,12 @@ public:
     Session(int id, std::weak_ptr<Connection> conn, sockaddr_in* addr);
     ~Session();
     
-    void recv(std::string&& msg);
-    void send(const std::string& msg);
+    bool recv(std::string&& msg);
+    bool send(const std::string& msg);
     void close();
 
     auto lastActive() const { return m_last_active_tp; }
-private:
-    void closedByClient();
+
 private:
     int m_sockfd;
     sockaddr_in m_sockaddr;
