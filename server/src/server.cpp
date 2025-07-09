@@ -23,7 +23,7 @@ Server::Server(const int port) {
     // 创建管理 client IO 的对象 和 监听已连接的 client 线程
     m_connections.reserve(MAX_CONNECT_THREADS);
     for (int i = 0; i < MAX_CONNECT_THREADS; ++i) {
-        auto conn(std::make_shared<Connection>());
+        auto conn(std::make_shared<Connection>(i));
         if (conn->isStopped()) {
             std::cerr << "exit for not create connection" << std::endl;
             exit(1);
@@ -46,8 +46,19 @@ Server::~Server() {
 
 void Server::run() {
     std::cout << "server running..." << std::endl;
-    
+    std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
     while (!m_stop) {
+        std::chrono::steady_clock::time_point now_time = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(now_time - last_time).count() >= CHECK_STATE_INTERVAL) {
+            int total_conns = 0;
+            for (auto& connections : m_connections) {
+                int conn = connections->getConnectionCount();
+                total_conns += conn;
+                std::cout << "connection " << connections->getId() << " count: " << conn << std::endl;
+            }
+            std::cout << "total connection count: " << total_conns << std::endl;
+            last_time = now_time;
+        }
         epoll_event events[1024];
         int nfds = ::epoll_wait(m_epoll_fd, events, 1024, 10);
         if (nfds == -1) {

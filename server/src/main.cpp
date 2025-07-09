@@ -20,6 +20,7 @@ int main() {
     // 获取终止信号
     signal(SIGINT, on_signal);
     signal(SIGTERM, on_signal);
+    signal(SIGQUIT, on_signal);
     // 启动线程用于监听终止信号
     std::thread stop_thread([]{
         while (!g_stop_server) {

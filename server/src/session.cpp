@@ -20,61 +20,36 @@ Session::~Session() {
     close();
 }
 
-void Session::recv() {
+void Session::recv(std::string&& data) {
     m_last_active_tp = std::chrono::system_clock::now();
-    int n = 0;
-    std::string data;
-    while (true) {
-        char buffer[MAX_BUFFER_SIZE];
-        n = ::recv(m_sockfd, buffer, MAX_BUFFER_SIZE, 0);
-        if (n == 0) {
-            std::cout << "client closed by client: " << m_sockfd << " thread id: " << std::this_thread::get_id()<< std::endl;
-            closedByClient();
-            break;
-        } else if (n < 0) {
-            if (errno != EWOULDBLOCK || errno != EAGAIN) {
-                std::cerr << "recv error: " << errno << " " << std::strerror(errno) << " thread id: " << std::this_thread::get_id() << std::endl;
-                closedByClient();
-            }
-            break;    
-        } else {
-            data.append(buffer, n);
-        }
-    }
-    if (n > 0) {
-        std::cout << "recved data: " << data << " len: " << data.length() << " " << m_sockfd << " thread id: " << std::this_thread::get_id() << std::endl;
-        send(data);
-    }
+    std::cout << "recved data: " << data << " len: " << data.length() << " " << m_sockfd << " thread id: " << std::this_thread::get_id() << std::endl;
+    send(data);
 }
 
 void Session::send(const std::string& msg) {
     m_last_active_tp = std::chrono::system_clock::now();
-    size_t ret = 0, sent_len = 0;
+    size_t bytes_sent = 0, len = msg.length();
     const char* data = msg.c_str();
-    while (sent_len <= msg.length()) {
-        ret = ::send(m_sockfd, data + sent_len, msg.length() - sent_len, 0);
-        if (ret < 0) {
-            if (errno != EWOULDBLOCK || errno != EAGAIN) {
-                std::cerr << "recv error: " << errno << " " << std::strerror(errno) << " thread id: " << std::this_thread::get_id() << std::endl;
-                closedByClient();
-            }
+    // std::cout << "send data: " << msg.size() << " begin..." << std::endl;
+    while (len > 0) {
+        bytes_sent = ::send(m_sockfd, data, len, 0);
+        if (bytes_sent < 0) {
             break;
-        } else if (ret == 0) {
-            std::cout << "client closed by client: " << m_sockfd<< " thread id: " << std::this_thread::get_id()  << std::endl;
-            closedByClient();
-            return;
-        } else {
-            sent_len += ret;
         }
+        if (bytes_sent == 0) {
+            return;
+        }
+        len -= bytes_sent;
+        data += bytes_sent;
     }
-    std::cout << "sent data: " << msg.substr(0, sent_len) << " len: " << sent_len << " " << m_sockfd << " thread id: " << std::this_thread::get_id() << std::endl;
+    if (len > 0)
+        std::cout << "sent data: " << msg.substr(0, len) << " len: " << len << " " << m_sockfd << " thread id: " << std::this_thread::get_id() << std::endl;
 }
 
 void Session::closedByClient() {
     std::shared_ptr<Connection> conn = m_conn.lock();
     if (conn)
         conn->removeSession(m_sockfd);
-    std::cout << "session " << m_sockfd << " closedByClient " << " thread id: " << std::this_thread::get_id()  << std::endl;
 }
 
 void Session::close() {
@@ -83,5 +58,5 @@ void Session::close() {
     ::shutdown(m_sockfd, SHUT_RDWR);
     ::close(m_sockfd);
     m_sockfd = -1;
-    std::cout << "Session " << fd << " closed. " << " thread id: " << std::this_thread::get_id()  << std::endl;
+    std::cout << "session " << fd << " closed. " << " thread id: " << std::this_thread::get_id()  << std::endl;
 }

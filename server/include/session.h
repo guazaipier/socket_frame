@@ -11,7 +11,7 @@ public:
     Session(int id, std::weak_ptr<Connection> conn, sockaddr_in* addr);
     ~Session();
     
-    void recv();
+    void recv(std::string&& msg);
     void send(const std::string& msg);
     void close();
 
